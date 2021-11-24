@@ -1,0 +1,75 @@
+# mod_proxy_balancer should be disabled when mod_cluster is used
+LoadModule proxy_cluster_module modules/mod_proxy_cluster.so
+LoadModule cluster_slotmem_module modules/mod_cluster_slotmem.so
+LoadModule manager_module modules/mod_manager.so
+LoadModule advertise_module modules/mod_advertise.so
+
+# .postinstall will change the serverroot symbolic link to actual path including the ones in the comments
+#MemManagerFile /ebiz/apache/httpd/cache/mod_cluster
+MemManagerFile <%= @server_root %>/cache/mod_cluster
+
+<IfModule manager_module>
+# Listen @@FQDN@@:@@MC_LISTEN_PORT@@
+Listen <%= @host_fqdn %>:<%= @mc_listen_port %>
+# <VirtualHost @@FQDN@@:@@MC_LISTEN_PORT@@>
+  <VirtualHost <%= @host_fqdn %>:<%= @mc_listen_port %>>
+    <Directory />
+      Require ip 10
+    </Directory>
+    ServerAdvertise Off
+    EnableMCPMReceive On
+    KeepAliveTimeout 60
+    MaxKeepAliveRequests 0
+
+#    <Location /mod_cluster_manager>
+#      SetHandler mod_cluster-manager
+#      Require ip 10 127.0.0.1
+#   </Location>
+####################################################################
+## /mod_cluster-manager disabled for now,
+## moving away from Unix LDAP authentication
+## Replacing with AD authentication, however there is no acceptable
+## userid/password to place into the AuthLDAPBindDN/AuthLDAPPassword
+## directives yet
+##
+## If you enter a set of credentials here, make sure that the
+## credentials only have access to AD searching. Any credentials
+## entered here are stored in plaintext and could present a
+## security risk.
+###US138320##########################################################
+##    <Location /mod_cluster-manager>
+##        SetHandler mod_cluster-manager
+##        Order deny,allow
+##        deny from all
+##       allow from 10 .uhc.com
+##        AuthType Basic
+##        AuthName "eBiz ewsmodcluster-manager"
+##        AuthzLDAPAuthoritative off
+##        AuthBasicProvider ldap
+##        AuthLDAPBindDN "CN=changeMe,CN=Users,DC=ms,DC=ds,DC=uhc,DC=com"
+##        AuthLDAPBindPassword passwordChangeMe
+##        AuthLDAPUrl "ldap://ad-ldap-prod.uhc.com:389/CN=Users,dc=ms,dc=ds,dc=uhc,dc=com?cn"
+#
+##        require ldap-group CN=UHT_ebiz_TEST,CN=Users,DC=ms,DC=ds,DC=uhc,DC=com
+##    </Location>
+ <Location /mod_cluster-manager>
+   SetHandler mod_cluster-manager
+   AuthType  basic
+   #AuthName "ModCluster Auth"
+   AuthName "<%= @mod_cluster_auth %>"
+   AuthLDAPBindAuthoritative off
+   AuthBasicProvider ldap
+   #AuthLDAPBindDN "CN=eaptestrtid2,CN=Users,DC=ms,DC=ds,DC=uhc,DC=com"
+   AuthLDAPBindDN "CN=<%= @eap_rtid %>,<%= @ldap_binddn_users %>"
+   #AuthLDAPBindPassword "exec:/ebiz/apache/httpd/bin/waspass {xor}Ay0KEWltMhs="
+   AuthLDAPBindPassword "<%= @ldap_pass_decrypted %>"
+   #AuthLDAPUrl "ldap://ad-ldap-prod.uhc.com:389/CN=Users,dc=ms,dc=ds,dc=uhc,dc=com?cn"
+   AuthLDAPUrl "ldap://<%= @ldap_server_host_name %>:<%= @ldap_server_port %>/<%= @ldap_binddn_users %>?cn"
+   <RequireAll>
+     #Require ldap-group CN=WAS_ADMIN_eBiz,CN=Users,DC=ms,DC=ds,DC=uhc,DC=com
+     Require ldap-group CN=<%= @was_admin_ebiz %>,<%= @ldap_binddn_users %>
+     Require ip 10
+   </RequireAll>
+ </Location>
+  </VirtualHost>
+</IfModule>

@@ -1,0 +1,47 @@
+LoadModule slotmem_module <%= @server_root %>/modules/mod_slotmem.so
+LoadModule manager_module <%= @server_root %>/modules/mod_manager.so
+LoadModule proxy_cluster_module <%= @server_root %>/modules/mod_proxy_cluster.so
+LoadModule advertise_module <%= @server_root %>/modules/mod_advertise.so
+
+Listen <%= @server_name %>:<%= @mc_listen_port %>
+
+<VirtualHost <%= @server_name %>:<%= @mc_listen_port %>>
+    <Location />
+          Order deny,allow
+          Allow from all
+    </Location>
+####################################################################
+# /ews-status disabled for now,
+# moving away from Unix LDAP authentication
+# Replacing with AD authentication, however there is no acceptable
+# userid/password to place into the AuthLDAPBindDN/AuthLDAPPassword
+# directives yet
+#
+# If you enter a set of credentials here, make sure that the
+# credentials only have access to AD searching. Any credentials
+# entered here are stored in plaintext and could present a
+# security risk.
+##US138320##########################################################
+#    <Location /mod_cluster-manager>
+#        SetHandler mod_cluster-manager
+#        Order deny,allow
+#        deny from all
+#	allow from 10 .uhc.com
+#        AuthType Basic
+#        AuthName "eBiz ewsmodcluster-manager"
+#        AuthzLDAPAuthoritative off
+#        AuthBasicProvider ldap
+#	 AuthLDAPBindDN "CN=changeMe,CN=Users,DC=ms,DC=ds,DC=uhc,DC=com"
+#	 AuthLDAPBindPassword passwordChangeMe
+#        AuthLDAPUrl "ldap://<%= @ldap_server_host_name %>:<%= @ldap_server_port %>/DC=ms,DC=ds,DC=uhc,DC=com?cn"
+#        require ldap-group CN=UHT_ebiz_TEST,CN=Users,DC=ms,DC=ds,DC=uhc,DC=com
+#    </Location>
+
+     KeepAliveTimeout 60
+     MaxKeepAliveRequests 0
+     EnableMCPMReceive On
+
+     #ManagerBalancerName @@MANAGERBALANCERNAME@@
+     ServerAdvertise Off
+
+</VirtualHost>

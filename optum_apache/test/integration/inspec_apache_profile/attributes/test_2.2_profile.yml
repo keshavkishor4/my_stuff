@@ -1,0 +1,34 @@
+#--------- test data w/o databag ----------------------
+# Notes: the node atrributes in the attribute file will provide the test data
+# which we couldn't obtain from the node attribute in the describe resources
+# They will overwrite the default attribute in the test recipes
+# This is a workaround for the limitation of current InSpec version
+#--------- test data w/o databag ----------------------
+name: test_2.2_profile
+title: InSpec Profile for apache 2.2
+maintainer: The Authors
+copyright: The Authors
+copyright_email: you@example.com
+license: All Rights Reserved
+summary: An InSpec Compliance Profile
+version: 0.1.0
+host_fqdn: <hostname>.uhc.com
+mui_identifier: <mui>
+networkzone: <internet or intranet>
+environment_level: <env>
+profile_name: jws
+
+# the followings can be load from the node attribute export file
+# Supports apache version 2.2 and 2.4
+# node['optum_apache']['version'] = '2.2'
+
+# Define unique 3 character identifier
+# node['optum_apache']['mui_identifier'] = 'bb8'
+
+# Define environment level (dev, tst, stg, prd)
+# node['optum_apache']['environment_level'] = 'dev'
+
+# network zone - intranet/core or internet/DMZ
+# node['optum_apache']['networkzone'] = 'internet'
+
+#node['optum_apache']['host_fqdn'] ='webrd1318.uhc.com'

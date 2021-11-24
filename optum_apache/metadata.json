@@ -1,0 +1,41 @@
+{
+  "name": "optum_apache",
+  "description": "Installs and configures Red Hat JBoss Apache HTTP Server",
+  "long_description": "Installs and configures Red Hat JBoss Apache HTTP Server version 2.2 or version 2.4 on RHEL7",
+  "maintainer": "The Authors",
+  "maintainer_email": "you@example.com",
+  "license": "All Rights Reserved",
+  "platforms": {
+  },
+  "dependencies": {
+  },
+  "recommendations": {
+  },
+  "suggestions": {
+  },
+  "conflicting": {
+  },
+  "providing": {
+  },
+  "replacing": {
+  },
+  "attributes": {
+  },
+  "groupings": {
+  },
+  "recipes": {
+  },
+  "version": "0.3.2",
+  "source_url": "https://github.optum.com/PaaS-Cookbooks/optum_apache",
+  "issues_url": "",
+  "privacy": false,
+  "chef_versions": [
+
+  ],
+  "ohai_versions": [
+
+  ],
+  "gems": [
+
+  ]
+}

@@ -1,0 +1,18 @@
+source 'https://rubygems.org'
+
+gem 'berkshelf', '~> 5.6'
+gem 'chef', '~> 12.18'
+
+group :test do
+  gem 'rubocop', '~> 0.46.0'
+  gem 'foodcritic', '~> 9.0'
+end
+
+group :integration do
+  # ChefDK already includes Test-Kitchen and kitchen-inspec
+  # feng to do - check if the gems still need to be specified
+  gem 'kitchen-inspec'
+  gem 'test-kitchen'
+  gem 'kitchen-vagrant'
+  gem 'inspec', '~> 1.11'
+end

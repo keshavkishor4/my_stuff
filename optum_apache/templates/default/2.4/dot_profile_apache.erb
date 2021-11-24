@@ -1,0 +1,15 @@
+SERVER=<%= @profile_name %>
+ENV=<%= @environment_level %>
+MUI=<%= @mui_identifier %>
+EWS_HOME=<%= @server_root %>
+EWS_LOGS=<%= @apache_log_dir %>
+export EWS_HOME
+export EWS_LOGS
+EWS_OPTIONS="-Dmui=$MUI -Dcloudenv=$ENV -f $EWS_HOME/conf/httpd.conf -E $EWS_LOGS/httpd.log"
+export EWS_OPTIONS
+alias goews='cd $EWS_HOME'
+alias goewslog='cd $EWS_LOGS'
+alias gojws='cd $EWS_HOME'
+alias gojwslog='cd $EWS_LOGS'
+alias gologs='cd $EWS_LOGS'
+#. /ebiz/rd1/CA/webagent/ca_wa_env.sh
