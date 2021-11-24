@@ -1,0 +1,539 @@
+kubectl logs coredns-6955765f44-t7sx6 -n kube-system
+kubectl get pods kube-apiserver-ip-172-31-0-237 -n kube-system -o jsonpath='{.spec.containers[*].name}*'
+kubectl get pod kube-apiserver-ip-172-31-0-237 -n kube-system -o yaml | grep -i name # to get container name on multicontainer pod
+kubectl logs kube-apiserver-ip-172-31-0-237 -c kube-apiserver -n kube-system | more
+===============================
+# List PersistentVolumes in test namespace sorted by capacity
+kubectl get pv -n test --sort-by=.spec.capacity.storage
+============================================
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+
+$ cat daemon
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ds-section
+spec:
+  selector:
+    matchLabels:
+      name: nginx
+  template:
+    metadata:
+      labels:
+        name: nginx
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: nginx
+        image: nginx
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl apply -f daemon
+daemonset.apps/ds-section created
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get ds
+NAME         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+ds-section   3         3         3       3            3           <none>          14s
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get ds -o wide
+NAME         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE     CONTAINERS   IMAGES   SELECTOR
+ds-section   3         3         3       3            3           <none>          7m14s   nginx        nginx    name=nginx
+ubuntu@ip-172-31-0-237:
+=================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: workdir
+      mountPath: /usr/share/nginx/html
+  # These containers are run during pod initialization
+  initContainers:
+  - name: install
+    image: busybox
+    command:
+    - wget
+    - "-O"
+    - "/work-dir/index.html"
+    - http://kubernetes.io
+    volumeMounts:
+    - name: workdir
+      mountPath: "/work-dir"
+  dnsPolicy: Default
+  volumes:
+  - name: workdir
+    emptyDir: {}
+
+In the configuration file, you can see that the Pod has a Volume that the init container and the application container share. The init container mounts the shared Volume at /work-dir, and the application container mounts the shared Volume at /usr/share/nginx/html. The init container runs the following command and then terminates: wget -O /work-dir/index.html http://kubernetes.io .Notice that the init container writes the index.html file in the root directory of the nginx server.
+Create the Pod: kubectl apply -f https://k8s.io/examples/pods/init-containers.yaml
+Verify that the nginx container is running:
+
+kubectl get pod init-demo
+The output shows that the nginx container is running:
+NAME        READY     STATUS    RESTARTS   AGE
+init-demo   1/1       Running   0          1m
+
+Get a shell into the nginx container running in the init-demo Pod:
+kubectl exec -it init-demo -- /bin/bash
+In your shell, send a GET request to the nginx server:
+
+root@nginx:~# apt-get update
+root@nginx:~# apt-get install curl
+root@nginx:~# curl localhost
+The output shows that nginx is serving the web page that was written by the init container:
+
+<!Doctype html>
+<html id="home">
+
+<head>
+...
+"url": "http://kubernetes.io/"}</script>
+</head>
+<body>
+  ...
+  <p>Kubernetes is open source giving you the freedom to take advantage ...</p>
+  ...
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  containers:
+  - name: checker
+    image: alpine
+	command: ["/bin/sh", "-c", "if [-f /workdir/faithful.txt ]; then sleep 100000; else exit 1; fi"]
+    volumeMounts:
+	- name: workdir
+      mountPath: /workdir
+  # These containers are run during pod initialization
+  initContainers:
+  - name: install
+    image: alpine
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "touch /workdir/faithful.txt"
+    volumeMounts:
+    - name: workdir
+      mountPath: "/workdir"
+  volumes:
+  - name: workdir
+    emptyDir: {}
+	
+============================================
+kubectl label nodes ip-172-31-3-131 disktype=ssd
+kubectl get nodes --show-labels
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:				==
+    env: test			==
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    disktype: ssd
+	
+$ cat pod-nodeselect
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    disktype: ssd
+	
+$ kubectl get po -o wide
+=========================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3				#
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+		
+$ cat deploy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl apply -f deploy
+deployment.apps/nginx-deployment created
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get deployment
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   1/1     1            1           34s
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl describe deployment nginx-deployment | grep -i image
+    Image:        nginx:1.7.9
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1 --record
+deployment.apps/nginx-deployment image updated
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl describe deployment nginx-deployment | grep -i image
+                        kubernetes.io/change-cause: kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1 --record=true
+    Image:        nginx:1.9.1
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl rollout undo deployment.v1.apps/nginx-deployment
+deployment.apps/nginx-deployment rolled back
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl describe deployment nginx-deployment | grep -i image
+    Image:        nginx:1.7.9
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl scale deployment.v1.apps/nginx-deployment --replicas=2
+deployment.apps/nginx-deployment scaled
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get deployment
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   2/2     2            2           3m46s
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+==============================
+kubectl expose -h
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl expose pod nginx-deployment-54f57cf6bf-22tlh --port=80 --name=frontend --type=NodePort
+service/frontend exposed
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+frontend     NodePort    10.96.121.122   <none>        80:30789/TCP   20s
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP        178m
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+external IP: shows node
+The PORT(S) column shows both the
+internal port of the cluster IP (80) and the node port (30123). The service is accessible
+at the following addresses:
+ 10.11.254.223:80
+ <1st node’s IP>:30123
+ <2nd node’s IP>:30123, and so on.
+
+$ curl 10.96.121.122:80
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+..
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get no -o wide
+NAME              STATUS   ROLES    AGE    VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION    CONTAINER-RUNTIME
+ip-172-31-0-237   Ready    master   3h9m   v1.17.0   172.31.0.237   <none>        Ubuntu 18.04.3 LTS   4.15.0-1051-aws   docker://19.3.4
+ip-172-31-3-131   Ready    <none>   3h4m   v1.17.0   172.31.3.131   <none>        Ubuntu 18.04.3 LTS   4.15.0-1051-aws   docker://19.3.4
+ip-172-31-3-72    Ready    <none>   3h4m   v1.17.0   172.31.3.72    <none>        Ubuntu 18.04.3 LTS   4.15.0-1051-aws   docker://19.3.4
+ubuntu@ip-172-31-0-237:/tmp/files$ curl 172.31.3.131:30789
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+
+======================================================================
+$ kubectl run kubia --image=luksa/kubia --port=8080 --generator=run/v1
+replicationcontroller "kubia" created
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl create ns myspace
+namespace/myspace created
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get ns
+NAME              STATUS   AGE
+default           Active   3h37m
+kube-node-lease   Active   3h37m
+kube-public       Active   3h37m
+kube-system       Active   3h37m
+myspace           Active   9s
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl run mongo --image=redis --namespace=myspace --generator=run/v1
+kubectl run --generator=run/v1 is DEPRECATED and will be removed in a future version. Use kubectl run --generator=run-pod/v1 or kubectl create instead.
+replicationcontroller/mongo created
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get rc -n myspace
+NAME    DESIRED   CURRENT   READY   AGE
+mongo   1         1         1       27s
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl run mongo1 --image=redis
+kubectl run --generator=deployment/apps.v1 is DEPRECATED and will be removed in a future version. Use kubectl run --generator=run-pod/v1 or kubectl create instead.
+deployment.apps/mongo1 created
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get deploy
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+mongo1             1/1     1            1           4m12s
+nginx-deployment   2/2     2            2           63m
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+ kubectl run mongo3 --image=redis --namespace=myspace --generator=run-pod/v1     ===
+pod/mongo3 created
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get rc -n myspace
+NAME    DESIRED   CURRENT   READY   AGE
+mongo   1         1         1       3m7s
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get po
+NAME                                READY   STATUS    RESTARTS   AGE
+ds-section-2znsj                    1/1     Running   0          140m
+ds-section-kv89s                    1/1     Running   0          140m
+ds-section-wfz9c                    1/1     Running   0          140m
+mongo1-696789c596-zf9b4             1/1     Running   0          3m1s
+nginx                               1/1     Running   0          74m
+nginx-deployment-54f57cf6bf-22tlh   1/1     Running   0          58m
+nginx-deployment-54f57cf6bf-hvgsr   1/1     Running   0          59m
+ubuntu@ip-172-31-0-237:/tmp/files$
+=============================================================================
+kubectl run --help
+
+kubectl run kucc10 --image=nginx --replicas=2 labels=env=pod --dry-run -o yaml > /tmp/files/dryrundeploy
+
+ubuntu@ip-172-31-0-237:/tmp/files$ cat /tmp/files/dryrundeploy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    run: kucc10
+  name: kucc10
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: kucc10
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: kucc10
+    spec:
+      containers:
+      - args:
+        - labels=env=pod
+        image: nginx
+        name: kucc10
+        resources: {}
+status: {}
+================================================
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+frontend     NodePort    10.96.121.122   <none>        80:30789/TCP   53m
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP        3h51m
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl describe service frontend | grep -i selector
+Selector:                 app=nginx,pod-template-hash=54f57cf6bf
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get pod -l app=nginx
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-54f57cf6bf-22tlh   1/1     Running   0          67m
+nginx-deployment-54f57cf6bf-hvgsr   1/1     Running   0          69m
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+=======================================================================
+ubuntu@ip-172-31-0-237:/tmp/files$ echo -n 'bob' | base64
+Ym9i
+ubuntu@ip-172-31-0-237:/tmp/files$ vi my-scret
+ubuntu@ip-172-31-0-237:/tmp/files$ cat my-scret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  password: Ym9i
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl create -f my-scret
+secret/mysecret created
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl get secrets
+NAME                  TYPE                                  DATA   AGE
+default-token-wdrhb   kubernetes.io/service-account-token   3      3h57m
+mysecret              Opaque                                1      19s
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+Using Secrets as Files from a Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rest1
+spec:
+  containers:
+  - name: mypod
+    image: redis
+    volumeMounts:
+    - name: foo
+      mountPath: "/secrets"
+      readOnly: true
+  volumes:
+  - name: foo
+    secret:
+      secretName: mysecret
+
+kubectl apply -f <filename>
+
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl exec -it rest1 ls /secrets
+password
+ubuntu@ip-172-31-0-237:/tmp/files$
+
+####
+ubuntu@ip-172-31-0-237:/tmp/files$ cat podfilesecret
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rest1
+spec:
+  containers:
+  - name: mypod
+    image: redis
+    volumeMounts:
+    - name: foo
+      mountPath: "/secrets"
+      readOnly: true
+  volumes:
+  - name: foo
+    secret:
+      secretName: mysecret
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl apply -f podenvsecret
+pod/test2 created
+ubuntu@ip-172-31-0-237:/tmp/files$
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl exec -it test2 env | grep CREDENTIALS
+CREDENTIALS=bob
+ubuntu@ip-172-31-0-237:/tmp/files$
+=============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+spec:
+  containers:
+  - image: redis
+    name: test-container
+    volumeMounts:
+    - mountPath: /data/redis
+      name: /tmp/volumes
+  volumes:
+  - name: /tmp/volumes
+    emptyDir: {}
+=====================================
+kubectl scale deployment.v1.apps/nginx-deployment --replicas=10
+
+kubectl scale --replicas=3 deployment/nginx-deployment
+kubectl get deploy
+
+======================
+cat <<EOF >static-web.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-web
+  labels:
+    role: myrole
+spec:
+  containers:
+    - name: web
+      image: nginx
+      ports:
+        - name: web
+          containerPort: 80
+          protocol: TCP
+EOF
+
+==========================
+ubuntu@ip-172-31-0-237:/tmp/files$ kubectl exec -it busybox /bin/sh
+/ # nslookup 10-44-0-7.default.pod
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      10-44-0-7.default.pod
+Address 1: 10.44.0.7 10-44-0-7.nginx-text.default.svc.cluster.local
+/ # nslookup nginx-text
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      nginx-text
+Address 1: 10.96.255.230 nginx-text.default.svc.cluster.local
+/ # cat /etc/resolv.conf
+nameserver 10.96.0.10
+search default.svc.cluster.local svc.cluster.local cluster.local ap-south-1.compute.internal
+options ndots:5
+/ #
+
+
+
+
+	  

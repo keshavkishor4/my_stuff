@@ -1,0 +1,485 @@
+Q1.
+
+
+kubectl  get pod --> To get a list of pod available
+kubectl  logs nginx  | grep error > /tmp/pod.log
+
+
+=====================
+
+
+Q2.
+
+
+kubectl  get pv --sort-by=.spec.capacity.storage > /tmp/storage.txt
+kubectl  get pv  > /tmp/storage.txt
+=====================
+
+
+Q3.
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ds-kusc00201
+spec:
+  selector:
+    matchLabels:
+      name: nginx
+  template:
+    metadata:
+      labels:
+        name: nginx
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: nginx
+        image: nginx
+                
+=====================
+
+
+Q4. 
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bumpy-liama
+spec:
+  volumes:
+  - name: workdir
+    emptyDir:
+  containers:
+  - name: checker
+    image: alpine
+    command: ["/bin/sh", "-c", "if [ -f /workdir/faithful.txt ];
+               then sleep 100000; else exit 1; fi"]
+    volumeMounts:
+    - name: workdir
+      mountPath: /workdir
+  initContainers:
+  - name: install
+    image: alpine
+    command: ["/bin/sh",  "-c",  "touch /workdir/faithful.txt"]
+    volumeMounts:
+    - name: workdir
+      mountPath: "/workdir"
+  dnsPolicy: Default
+  
+=====================
+
+
+Q5.
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+  - name: redis
+    image: redis
+  - name: busybox
+    image: busybox
+        
+=====================
+
+
+Q6.
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodename
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    disktype: ssd
+        
+=====================
+
+
+Q7.
+
+
+Step:1.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  labels:
+    app: nginx
+spec:
+  replicas: 3  ## No replica ?
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.11.10-alpine
+        ports:
+        - containerPort: 80
+
+
+
+
+kubectl create -f deployment.yaml  --record=true
+
+
+
+
+Step:2
+kubectl  set image deployment/nginx-deployment  nginx=nginx:1.11.13-alpine  --record
+
+
+Step3:
+kubectl rollout undo deployment.v1.apps/nginx-deployment
+
+
+=====================
+
+
+Q8.
+
+
+kubectl  expose  pod nginx --name=front-end-service --port=80
+
+
+=====================
+
+
+Q9.
+
+
+kubectl create namespace my-website
+kubectl run --generator=run-pod/v1 mongo --image=redis --namespace=my-website
+
+
+=====================
+
+
+Q10.
+
+
+kubectl run kucc10 --image=nginx  --replicas=2 --labels=env=prod --dry-run -o yaml > /opt/deployment
+
+
+
+
+=====================
+
+
+Q11.
+kubectl describe service front-end-service
+kubectl get pod -l  run=nginx
+kubectl get pod -l  run=nginx > /opt/baz-pod-list
+Delete everything except pod name
+
+
+=====================
+
+
+Q12.
+
+
+Step1:
+echo -n 'bob' | base64
+
+
+master $ cat secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: super-secret
+type: Opaque
+data:
+  password: Ym9i
+  
+kubectl create -f secret.yaml
+
+
+Step:2
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test1
+spec:
+  containers:
+  - name: mypod
+    image: redis
+    volumeMounts:
+    - name: super-secret
+      mountPath: "/secrets"
+      readOnly: true
+  volumes:
+  - name: super-secret
+    secret:
+      secretName: super-secret
+          
+
+
+Step3:
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test2
+spec:
+  containers:
+  - name: mycontainer
+    image: redis
+    env:
+      - name: CREDENTIALS
+        valueFrom:
+          secretKeyRef:
+            name: super-secret
+            key: password
+                        
+
+
+=====================
+
+
+Q13.
+
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+spec:
+  containers:
+  - image: redis
+    name: redis
+    volumeMounts:
+    - mountPath: /data/redis
+      name: app-data
+  volumes:
+  - name: app-data
+    emptyDir: {}
+
+
+
+
+kubectl create -f empty.yaml -n qa
+
+
+
+
+=====================
+
+
+Q14.
+
+
+kubectl  scale --replicas=5 deployment webserver
+
+
+=====================
+
+
+Q15.
+
+
+kubectl get node
+kubectl describe nodename
+
+
+vim  xyz.yaml
+2
+:wq!
+
+
+=====================
+
+
+Q16.
+
+
+kubectl run nginx-test  --image=nginx
+kubectl expose deployment nginx-test --name=nginx-test --port=80
+
+
+kubectl get pod -o wide
+get the IP
+
+
+Deploy BusyBox:
+kubectl create -f busy.yaml
+
+
+For Service:
+/ # nslookup nginx-test
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+
+Name:      nginx-test
+Address 1: 10.99.125.22 nginx-test.default.svc.cluster.local
+
+
+For Pod:
+
+
+master $ kubectl exec -it busybox sh
+
+
+/ # nslookup 10-32-0-2.default.pod
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+
+Name:      10-32-0-2.default.pod
+Address 1: 10.32.0.2 10-32-0-2.nginx-test.default.svc.cluster.local
+
+
+=====================
+
+
+Q17.
+
+
+Get the command from here from Master Node and exit Matser Node.
+cat /etc/kubernetes/manifests/etcd.yaml
+
+
+ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt  --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt --key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+
+
+
+
+ADD snapshot
+
+
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/opt/ca.crt  --cert=/opt/etcd-client.crt --key=/opt/etcd-client.key snapshot save /srv/data/etcd/etcd-snapshot.db
+
+
+
+
+=====================
+
+
+Q18.
+
+
+kubectl drain node01 --delete-local-data --ignore-daemonsets
+
+
+
+
+
+
+=====================
+
+
+Q19.
+kubectl get node
+ssh node01
+systemctl start kubelet
+systemctl enable kubelet
+systemctl status kubelet
+
+
+=====================
+
+
+Q20.
+
+
+Static Pod
+
+
+PATH : /etc/systemd/system/kubelet.service
+
+
+--pod-manifest-path=/etc/kubernetes/manifests \
+
+
+ssh  node01
+sudo -i
+systemctl status  kubelet
+vim /etc/system/systemd/kubelet.service
+
+
+  --pod-manifest-path=/etc/kubernetes/manifests
+  
+  :wq!
+  
+  
+  systemctl daemon-reload
+  systemctl restart  kublet
+  cd  /etc/kubernetes/manifests
+  vim pod.yml
+  image: httpd
+  pod name; webtool:
+  :wq!exitexitkpod
+
+
+
+
+
+
+=====================
+
+
+Q21.
+
+
+kubectl top pod -l name=cpu-user >  /tmp/highcpu.txt
+
+
+=====================
+
+
+Q22.
+
+
+master $ cat local.yaml
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: example-pv
+spec:
+  capacity:
+    storage: 2Gi
+  # volumeMode field requires BlockVolume Alpha feature gate to be enabled.
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  local:
+    path: /opt/srv
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - example-node
